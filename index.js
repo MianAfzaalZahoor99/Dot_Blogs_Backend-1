@@ -56,7 +56,7 @@ socketIO.on('connection', (socket) => {
 // CONNECTION TO DATABASE
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-x
+    http.listen(process.env.PORT_NUMBER)
   })
   .catch(error => console.log('COULD NOT CONNECT TO DATABASE'))
 
