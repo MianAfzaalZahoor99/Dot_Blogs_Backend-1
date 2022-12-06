@@ -1,5 +1,6 @@
 const express = require('express')
 const router = express.Router()
+
 const {
   createPosts,
   deletePost,
@@ -8,28 +9,27 @@ const {
   likePost,
   updatePost
 } = require('../controllers/postControllers')
-
 const requireAuth = require('../middleware/requireAuth')
 
 // FETCH POSTS FOR GUESTS
 router.get('/guest', guestPosts)
 
-// REQUIRE AUTH FOR ALL POSTS ROUTES
+// >>----------------USING THE AUTHENTICATION----------------<<
 router.use(requireAuth)
 
 // CREATE A NEW POST
 router.post('/', createPosts)
 
-// GET ALL POSTS
-router.get('/', getPosts)
-
 // DELETE A POST
 router.delete('/:id', deletePost)
 
-// UPDATE A POST
-router.patch('/:id', updatePost)
+// GET ALL POSTS
+router.get('/', getPosts)
 
 // LIKE A POST
 router.patch('/likes/:id', likePost)
+
+// UPDATE A POST
+router.patch('/:id', updatePost)
 
 module.exports = router

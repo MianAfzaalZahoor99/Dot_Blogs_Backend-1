@@ -4,7 +4,6 @@ const User = require('../models/userModel')
 const requireAuth = async (req, res, next) => {
   // VERIFY USER
   const { authorization } = req.headers
-
   if(!authorization) {
     res.status(401).json({erorr: 'USER NOT REGISTERED'})
   }

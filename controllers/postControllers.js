@@ -1,12 +1,12 @@
-const Posts = require('../models/postModel')
-const Comments = require('../models/commentModel')
 const mongoose = require('mongoose')
+
+const Comments = require('../models/commentModel')
+const Posts = require('../models/postModel')
 const User = require('../models/userModel')
 
 // CREATE A NEW POST
 const createPosts = async (req, res) => {
   const {title, description} = req.body
-
   let emptyFileds = []
   if(!title)
   {
@@ -28,12 +28,6 @@ const createPosts = async (req, res) => {
   }
 }
 
-// GET ALL POSTS
-const getPosts = async (req, res) => {
-  const posts = await Posts.find().sort({createdAt: -1}).populate({path: 'comments'}).sort({createdAt: -1})
-  res.status(200).json(posts)
-}
-
 // DELETE A POST
 const deletePost = async (req, res) => {
   const {id} = req.params
@@ -51,26 +45,20 @@ const deletePost = async (req, res) => {
   })
   res.status(200).json(post)
 }
-
-// DELETE COMMENTS OF THE POST
 const deleteComments = async comment => {
   await Comments.findByIdAndDelete({_id: comment})
 }
 
-// UPDATE A POST
-const updatePost = async (req, res) => {
-  const {id} = req.params
-  if(!mongoose.Types.ObjectId.isValid(id))
-  {
-    return res.status(404).json({error: "No Such Post Exists"})
-  }
-  const post = await Posts.findOneAndUpdate({_id: id}, {...req.body})
-  if (!post)
-  {
-    return res.status(400).json({error: "No Such Post Exists"})
-  }
-  const updatedPost = await Posts.findOne({_id: id})
-  res.status(200).json(updatedPost)
+// GET ALL POSTS
+const getPosts = async (req, res) => {
+  const posts = await Posts.find().sort({createdAt: -1}).populate({path: 'comments'}).sort({createdAt: -1})
+  res.status(200).json(posts)
+}
+
+// GET POSTS FOR GUEST
+const guestPosts = async (req, res) => {
+  const posts = await Posts.find().sort({createdAt: -1}).populate({path: 'comments'}).sort({createdAt: -1})
+  res.status(200).json(posts)
 }
 
 // LIKE A POST
@@ -118,10 +106,20 @@ const likePost = async (req, res) => {
   res.status(200).json({totalLikes : likeUsers})
 }
 
-// GET POSTS FOR GUEST
-const guestPosts = async (req, res) => {
-  const posts = await Posts.find().sort({createdAt: -1}).populate({path: 'comments'}).sort({createdAt: -1})
-  res.status(200).json(posts)
+// UPDATE A POST
+const updatePost = async (req, res) => {
+  const {id} = req.params
+  if(!mongoose.Types.ObjectId.isValid(id))
+  {
+    return res.status(404).json({error: "No Such Post Exists"})
+  }
+  const post = await Posts.findOneAndUpdate({_id: id}, {...req.body})
+  if (!post)
+  {
+    return res.status(400).json({error: "No Such Post Exists"})
+  }
+  const updatedPost = await Posts.findOne({_id: id})
+  res.status(200).json(updatedPost)
 }
 
 module.exports = {

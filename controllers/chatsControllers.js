@@ -1,6 +1,54 @@
+const mongoose = require('mongoose')
+
 const Chat = require('../models/chatModel')
 
-const mongoose = require('mongoose')
+// DELETE USER CHAT
+const deleteChat = async (req, res) => {
+  const { userID, friendID, messageDel } = req.body
+  const userChat = await Chat.findOneAndUpdate({user_one: userID, user_two: friendID}, {
+    $pull: {
+      messages: messageDel
+    }
+  })
+  if(!userChat)
+  {
+    const friendChat = await Chat.findOneAndUpdate({user_one: friendID, user_two: userID}, {
+      $pull: {
+        messages: messageDel
+      }
+    })
+    if(!friendChat)
+    {
+      res.status(400).json({error: 'Chat does not exists'})
+    }
+    else{
+      res.status(200).json({success: 'Message Deleted'})
+    }
+  }
+  else{
+    const sendChat = await Chat.findOne({user_one: userID, user_two: friendID})
+    res.status(200).json({returnedMessages: sendChat.messages})
+  }
+}
+
+// GET FRIENDS CHAT
+const getChat = async (req, res) => {
+  const { userID, friendID } = req.body
+  const userChat = await Chat.findOne({user_one: userID, user_two: friendID})
+  if(!userChat)
+  {
+    const friendChat = await Chat.findOne({user_one: friendID, user_two: userID})
+    if(!friendChat)
+    {
+      res.status(200).json({chat: []})
+    }
+    else{
+      res.status(200).json({chat: friendChat.messages})
+    }
+  }else{
+    res.status(200).json({chat: userChat.messages})
+  }
+}
 
 // SEND USER CHAT
 const sendChat = async (req, res) => {
@@ -55,54 +103,6 @@ const sendChat = async (req, res) => {
     messageDetails = await Chat.findOne({user_one: userID, user_two: friendID})
   }
   res.status(200).json({messageReturned: messageDetails.messages[messageDetails.messages.length-1]})
-}
-
-// GET FRIENDS CHAT
-const getChat = async (req, res) => {
-  const { userID, friendID } = req.body
-  const userChat = await Chat.findOne({user_one: userID, user_two: friendID})
-  if(!userChat)
-  {
-    const friendChat = await Chat.findOne({user_one: friendID, user_two: userID})
-    if(!friendChat)
-    {
-      res.status(200).json({chat: []})
-    }
-    else{
-      res.status(200).json({chat: friendChat.messages})
-    }
-  }else{
-    res.status(200).json({chat: userChat.messages})
-  }
-}
-
-// DELETE USER CHAT
-const deleteChat = async (req, res) => {
-  const { userID, friendID, messageDel } = req.body
-  const userChat = await Chat.findOneAndUpdate({user_one: userID, user_two: friendID}, {
-    $pull: {
-      messages: messageDel
-    }
-  })
-  if(!userChat)
-  {
-    const friendChat = await Chat.findOneAndUpdate({user_one: friendID, user_two: userID}, {
-      $pull: {
-        messages: messageDel
-      }
-    })
-    if(!friendChat)
-    {
-      res.status(400).json({error: 'Chat does not exists'})
-    }
-    else{
-      res.status(200).json({success: 'Message Deleted'})
-    }
-  }
-  else{
-    const sendChat = await Chat.findOne({user_one: userID, user_two: friendID})
-    res.status(200).json({returnedMessages: sendChat.messages})
-  }
 }
 
 // UPDATE CHAT

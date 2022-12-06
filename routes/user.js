@@ -1,35 +1,32 @@
 const express = require('express')
 const multer = require('multer')
+
 const router = express.Router()
 
 // IMPORTING CONTROLLER FUNCTIONS
 const {
   changeName,
   changePassword,
-  loginUser,
-  resetPasswordLink,
-  resetPassword,
-  setProfilePicture,
-  signupUser,
+  getFriends,
   getFriendsDetail,
-  getNotifications,
   getName,
+  getNotifications,
   getProfilePicture,
   getUser,
-  setFriends,
-  getFriends,
+  loginUser,
   removeFriends,
-  userStatus,
-  removeProfilePicture
+  removeProfilePicture,
+  resetPassword,
+  resetPasswordLink,
+  setFriends,
+  setProfilePicture,
+  signupUser,
+  userStatus
 } = require('../controllers/userControllers')
-
 const requireAuth = require('../middleware/requireAuth')
 
 // USER LOGIN REQUEST
 router.post('/login', loginUser)
-
-// USER SIGNUP REQUEST
-router.post('/signup', signupUser)
 
 // GET USER NAME
 router.post('/name', getName)
@@ -40,17 +37,44 @@ router.post('/resetpassword', resetPasswordLink)
 // RESET PASSWORD
 router.patch('/resetpassword', resetPassword)
 
+// USER SIGNUP REQUEST
+router.post('/signup', signupUser)
+
 // USER STATUS
 router.post('/userstatus', userStatus)
 
-// USING THE AUTHENTICATION
+// >>----------------USING THE AUTHENTICATION----------------<<
 router.use(requireAuth)
+
+// CHANGE NAME
+router.patch('/changename', changeName)
 
 // CHANGE PASSWORD
 router.patch('/changepassword', changePassword)
 
+// FIND FRIENDS
+router.post('/getfriends', getFriends)
+
+// GET ALL FRIENDS
+router.post('/allfriends', getFriendsDetail)
+
 // GET NOTIFICATIONS
 router.post('/notifications', getNotifications)
+
+// GET PROFILE PICTURE
+router.get('/getpicture/:id', getProfilePicture)
+
+// GET USER ID
+router.post('/details', getUser)
+
+// REMOVE FRIENDS
+router.patch('/removefriends', removeFriends)
+
+// REMOVE PROFILE PICTURE
+router.get('/removepicture/:id', removeProfilePicture)
+
+// SET FRIENDS
+router.patch('/setfriends', setFriends)
 
 // SET PROFILE IMAGE
 const storage = multer.diskStorage({
@@ -63,29 +87,5 @@ const storage = multer.diskStorage({
 })
 const upload = multer({storage: storage})
 router.patch('/setpicture', upload.single('profileImage'), setProfilePicture)
-
-// GET PROFILE PICTURE
-router.get('/getpicture/:id', getProfilePicture)
-
-// REMOVE PROFILE PICTURE
-router.get('/removepicture/:id', removeProfilePicture)
-
-// CHANGE NAME
-router.patch('/changename', changeName)
-
-// GET ALL FRIENDS
-router.post('/allfriends', getFriendsDetail)
-
-// GET USER ID
-router.post('/details', getUser)
-
-// FIND FRIENDS
-router.post('/getfriends', getFriends)
-
-// SET FRIENDS
-router.patch('/setfriends', setFriends)
-
-// REMOVE FRIENDS
-router.patch('/removefriends', removeFriends)
 
 module.exports = router

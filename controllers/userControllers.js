@@ -1,112 +1,20 @@
-const User = require('../models/userModel')
+const { google } = require('googleapis')
+const bcrypt = require('bcrypt')
 const fs = require('fs')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcrypt')
-const validator = require('validator')
 const nodemailer = require('nodemailer')
-const { google } = require('googleapis')
+const validator = require('validator')
+
+const User = require('../models/userModel')
+
+// SETTTIN THE CLIENT KEY FOR MAILING THE RESET PASSWORD LINK
 const OAuth2 = google.auth.OAuth2
 const OAuth2_client = new OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET)
 OAuth2_client.setCredentials({ refresh_token : process.env.REFRESH_TOKEN })
 
-
-// CREATING JSON WEB TOKEN
+// CREATING JSON WEB TOKEN USED IN LOGIN & SIGNUP
 const createToken = _id => {
   return jwt.sign({_id}, process.env.SECRET_KEY, {expiresIn: '1d'})
-}
-
-// LOGIN USER
-const loginUser = async (req, res) => {
-  const { email, password } = req.body
-  try{
-    const user = await User.login(email, password)
-
-    // GENERATING JWT TOKEN
-    const token = createToken(user._id)
-    res.status(200).json({name: user.name, email, token, friends: user.friends})
-  } catch(error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// SIGN UP USER
-const signupUser = async (req, res) => {
-  const { name, email, password } = req.body
-  try {
-    const user = await User.signup(name, email, password)
-    // GENERATING JWT TOKEN
-    const token = createToken(user._id)
-    res.status(200).json({name : user.name, email: user.email, token, friends: user.friends})
-  } catch(error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// SET PROFILE PICTURE
-const setProfilePicture = async (req, res) => {
-  const { userID } = req.body
-  try {
-    const userUpdate = await User.findByIdAndUpdate({_id: userID}, {
-      $set: {
-        profilephoto : {
-          data: fs.readFileSync('uploads/profile/' + req.file.originalname),
-          contentType: 'image/png'
-        }
-      }
-    })
-    if(!userUpdate)
-    {
-      res.status(400).json({error: 'USER DOES NOT EXIST'})
-    }
-    res.status(200).json({success: 'PICTURE UPDATED'})
-  } catch (error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// GET USER STATUS
-const userStatus = async (req, res) => {
-  const {userName} = req.body
-  const userSelected = await User.findOne({name : userName})
-  if (!userSelected)
-  {
-    res.status(400).json({error:'USER NOT FOUND'})
-  }
-  res.status(200).json({status: userSelected.premium})
-}
-
-// GET PROFILE PICTURE
-const getProfilePicture = async (req, res) => {
-  const { id } = req.params
-  try{
-    const userSelected = await User.findById({_id : id})
-    if (!userSelected)
-    {
-      res.status(400).json({error: 'USER NOT FOUND'})
-    }
-    res.status(200).json({profilePicture : userSelected.profilephoto})
-  }catch(error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// REMOVE PROFILE PICTURE
-const removeProfilePicture = async(req, res) => {
-  const { id } = req.params
-  try {
-    const userUpdate = await User.findByIdAndUpdate({_id: id}, {
-      $set: {
-        profilephoto : null
-      }
-    })
-    if(!userUpdate)
-    {
-      res.status(400).json({error: 'USER DOES NOT EXIST'})
-    }
-    res.status(200).json({success: 'PICTURE REMOVED'})
-  } catch (error) {
-    res.status(400).json({error: error.message})
-  }
 }
 
 // CHANGE NAME
@@ -149,6 +57,191 @@ const changePassword = async (req, res) => {
         res.status(400).json({error: 'USER DOES NOT EXIST'})
       }
       res.status(200).json({success: 'PASSWORD CHANGED'})
+    }
+  } catch (error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// GET FRIEND INFORMATION
+const getFriends = async (req, res) => {
+  const { userName } = req.body
+  const friend = await User.find({name : userName})
+  if (friend.length === 0) {
+    res.status(400).json({error: 'THIS ACCOUNT DOES NOT EXISTS'})
+  }else {
+    res.status(200).json(friend)
+  }
+}
+
+// GET USER FRIENDS
+const getFriendsDetail = async (req, res) => {
+  const { email } = req.body
+  const selfUser = await User.findOne({email : email}).sort({createAt: -1})
+  if (!selfUser) {
+    res.status(400).json({error: 'THIS ACCOUNT DOES NOT EXISTS'})
+  }else {
+    res.status(200).json({friends: selfUser.friends})
+  }
+}
+
+// GET USER NAME
+const getName = async (req, res) => {
+  const { commentUser } = req.body
+  try{
+    const newUser = await User.findById({_id : commentUser})
+    if (!newUser) {
+      res.status(400).json({error: 'USER DOES NOT EXISTS'})
+    }
+    res.status(200).json({name: newUser.name})
+  } catch (error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// GET NOTIFICATIONS
+const getNotifications = async (req, res) => {
+  const userNow = await User.findOneAndUpdate({name : req.body.userName}, {
+    $set: {
+      notifications: []
+    }
+  })
+  if (!userNow)
+  {
+    res.status(400).json({error : 'USER NOT FOUND'})
+  }
+  res.status(200).json({notifications: userNow.notifications})
+}
+
+// GET PROFILE PICTURE
+const getProfilePicture = async (req, res) => {
+  const { id } = req.params
+  try{
+    const userSelected = await User.findById({_id : id})
+    if (!userSelected)
+    {
+      res.status(400).json({error: 'USER NOT FOUND'})
+    }
+    res.status(200).json({profilePicture : userSelected.profilephoto})
+  }catch(error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// GET USER ID
+const getUser = async (req, res) => {
+  const { email } = req.body
+  try{
+    const user = await User.findOne({email})
+    if (!user) {
+      res.status(400).json({error: 'USER DOES NOT EXISTS'})
+    }
+    res.status(200).json({id: user._id})
+  } catch (error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// LOGIN USER
+const loginUser = async (req, res) => {
+  const { email, password } = req.body
+  try{
+    const user = await User.login(email, password)
+    // GENERATING JWT TOKEN
+    const token = createToken(user._id)
+    res.status(200).json({name: user.name, email, token, friends: user.friends})
+  } catch(error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// REMOVE FRIEND
+const removeFriends = async (req, res) => {
+  const { friendID, email } = req.body
+  try {
+    let mainUser = await User.findOne({email: email})
+    if (!mainUser) {
+      res.status(400).json({error: 'USER DOES NOT EXISTS'})
+    }
+    if (!mainUser.friends.includes(friendID))
+    {
+      res.status(200).json({message: 'USER IS NOT IN YOUR FRIEND LIST', friends: mainUser.friends})
+    }
+    else{
+      await User.findOneAndUpdate({_id: mainUser._id}, {
+        $pull: {
+          friends: friendID
+        }
+      })
+      const friend = await User.findById({_id: friendID})
+      if (!friend) {
+        res.status(400).json({error: 'USER DOES NOT EXISTS'})
+      }
+      await User.findOneAndUpdate({_id: friendID}, {
+        $pull: {
+          friends: mainUser._id
+        }
+      })
+      mainUser = await User.findOne({email: email})
+      res.status(200).json({friends: mainUser.friends})
+    }
+  } catch (error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// REMOVE PROFILE PICTURE
+const removeProfilePicture = async(req, res) => {
+  const { id } = req.params
+  try {
+    const userUpdate = await User.findByIdAndUpdate({_id: id}, {
+      $set: {
+        profilephoto : null
+      }
+    })
+    if(!userUpdate)
+    {
+      res.status(400).json({error: 'USER DOES NOT EXIST'})
+    }
+    res.status(200).json({success: 'PICTURE REMOVED'})
+  } catch (error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// RESET PASSWORD
+const resetPassword = async (req, res) => {
+  const { userToken, userID, userPassword } = req.body
+  const findUser = await User.findById({_id : userID})
+  if(!findUser)
+  {
+    res.status(400).json({error: 'USER NOT FOUND'})
+  }
+  try {
+    const payload = jwt.verify(userToken, process.env.SECRET_KEY)
+    if(!payload)
+    {
+      res.status(400).json({error: 'SESSION EXPIRED. RESET PASSWORD AGAIN.'})
+    }
+    else{
+      if(!validator.isStrongPassword(userPassword))
+      {
+        res.status(400).json({error: 'Password should have at least 7 characters(Uppercase, Lowercase and Any Character)'})
+      }
+      else{
+        const salt = await bcrypt.genSalt(10)
+        const hash = await bcrypt.hash(userPassword, salt)
+        const userUpdate = await User.findByIdAndUpdate({_id: userID}, {
+          $set: {
+            password : hash
+          }
+        })
+        if(!userUpdate)
+        {
+          res.status(400).json({error: 'USER DOES NOT EXIST'})
+        }
+        res.status(200).json({success: 'PASSWORD CHANGED'})
+      }
     }
   } catch (error) {
     res.status(400).json({error: error.message})
@@ -209,109 +302,6 @@ const resetPasswordLink = async (req, res) => {
   })
 }
 
-// GET NOTIFICATIONS
-const getNotifications = async (req, res) => {
-  const userNow = await User.findOneAndUpdate({name : req.body.userName}, {
-    $set: {
-      notifications: []
-    }
-  })
-  if (!userNow)
-  {
-    res.status(400).json({error : 'USER NOT FOUND'})
-  }
-  res.status(200).json({notifications: userNow.notifications})
-}
-
-// RESET PASSWORD
-const resetPassword = async (req, res) => {
-  const { userToken, userID, userPassword } = req.body
-  const findUser = await User.findById({_id : userID})
-  if(!findUser)
-  {
-    res.status(400).json({error: 'USER NOT FOUND'})
-  }
-  try {
-    const payload = jwt.verify(userToken, process.env.SECRET_KEY)
-    if(!payload)
-    {
-      res.status(400).json({error: 'SESSION EXPIRED. RESET PASSWORD AGAIN.'})
-    }
-    else{
-      if(!validator.isStrongPassword(userPassword))
-      {
-        res.status(400).json({error: 'Password should have at least 7 characters(Uppercase, Lowercase and Any Character)'})
-      }
-      else{
-        const salt = await bcrypt.genSalt(10)
-        const hash = await bcrypt.hash(userPassword, salt)
-        const userUpdate = await User.findByIdAndUpdate({_id: userID}, {
-          $set: {
-            password : hash
-          }
-        })
-        if(!userUpdate)
-        {
-          res.status(400).json({error: 'USER DOES NOT EXIST'})
-        }
-        res.status(200).json({success: 'PASSWORD CHANGED'})
-      }
-    }
-  } catch (error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// GET USER ID
-const getUser = async (req, res) => {
-  const { email } = req.body
-  try{
-    const user = await User.findOne({email})
-    if (!user) {
-      res.status(400).json({error: 'USER DOES NOT EXISTS'})
-    }
-    res.status(200).json({id: user._id})
-  } catch (error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// GET USER NAME
-const getName = async (req, res) => {
-  const { commentUser } = req.body
-  try{
-    const newUser = await User.findById({_id : commentUser})
-    if (!newUser) {
-      res.status(400).json({error: 'USER DOES NOT EXISTS'})
-    }
-    res.status(200).json({name: newUser.name})
-  } catch (error) {
-    res.status(400).json({error: error.message})
-  }
-}
-
-// GET FRIEND INFORMATION
-const getFriends = async (req, res) => {
-  const { userName } = req.body
-  const friend = await User.find({name : userName})
-  if (friend.length === 0) {
-    res.status(400).json({error: 'THIS ACCOUNT DOES NOT EXISTS'})
-  }else {
-    res.status(200).json(friend)
-  }
-}
-
-// GET USER FRIENDS
-const getFriendsDetail = async (req, res) => {
-  const { email } = req.body
-  const selfUser = await User.findOne({email : email}).sort({createAt: -1})
-  if (!selfUser) {
-    res.status(400).json({error: 'THIS ACCOUNT DOES NOT EXISTS'})
-  }else {
-    res.status(200).json({friends: selfUser.friends})
-  }
-}
-
 // ADD FRIEND
 const setFriends = async (req, res) => {
   const { friendID, email } = req.body
@@ -353,57 +343,68 @@ const setFriends = async (req, res) => {
   }
 }
 
-// REMOVE FRIEND
-const removeFriends = async (req, res) => {
-  const { friendID, email } = req.body
+// SET PROFILE PICTURE
+const setProfilePicture = async (req, res) => {
+  const { userID } = req.body
   try {
-    let mainUser = await User.findOne({email: email})
-    if (!mainUser) {
-      res.status(400).json({error: 'USER DOES NOT EXISTS'})
-    }
-    if (!mainUser.friends.includes(friendID))
-    {
-      res.status(200).json({message: 'USER IS NOT IN YOUR FRIEND LIST', friends: mainUser.friends})
-    }
-    else{
-      await User.findOneAndUpdate({_id: mainUser._id}, {
-        $pull: {
-          friends: friendID
+    const userUpdate = await User.findByIdAndUpdate({_id: userID}, {
+      $set: {
+        profilephoto : {
+          data: fs.readFileSync('uploads/profile/' + req.file.originalname),
+          contentType: 'image/png'
         }
-      })
-      const friend = await User.findById({_id: friendID})
-      if (!friend) {
-        res.status(400).json({error: 'USER DOES NOT EXISTS'})
       }
-      await User.findOneAndUpdate({_id: friendID}, {
-        $pull: {
-          friends: mainUser._id
-        }
-      })
-      mainUser = await User.findOne({email: email})
-      res.status(200).json({friends: mainUser.friends})
+    })
+    if(!userUpdate)
+    {
+      res.status(400).json({error: 'USER DOES NOT EXIST'})
     }
+    res.status(200).json({success: 'PICTURE UPDATED'})
   } catch (error) {
     res.status(400).json({error: error.message})
   }
 }
 
+// SIGN UP USER
+const signupUser = async (req, res) => {
+  const { name, email, password } = req.body
+  try {
+    const user = await User.signup(name, email, password)
+    // GENERATING JWT TOKEN
+    const token = createToken(user._id)
+    res.status(200).json({name : user.name, email: user.email, token, friends: user.friends})
+  } catch(error) {
+    res.status(400).json({error: error.message})
+  }
+}
+
+// GET USER STATUS
+const userStatus = async (req, res) => {
+  const {userName} = req.body
+  const userSelected = await User.findOne({name : userName})
+  if (!userSelected)
+  {
+    res.status(400).json({error:'USER NOT FOUND'})
+  }
+  res.status(200).json({status: userSelected.premium})
+}
+
 module.exports = {
   changeName,
   changePassword,
-  loginUser,
-  resetPasswordLink,
-  resetPassword,
-  setProfilePicture,
-  signupUser,
+  getFriends,
   getFriendsDetail,
+  getName,
   getNotifications,
   getProfilePicture,
-  getName,
   getUser,
-  setFriends,
-  getFriends,
+  loginUser,
   removeFriends,
-  userStatus,
-  removeProfilePicture
+  removeProfilePicture,
+  resetPassword,
+  resetPasswordLink,
+  setFriends,
+  setProfilePicture,
+  signupUser,
+  userStatus
 }

@@ -1,13 +1,13 @@
 const express = require('express')
 const router = express.Router()
+
 const {
   createCheckoutSession,
   updateUserStatus
 } = require('../controllers/paymentControllers')
-
 const requireAuth = require('../middleware/requireAuth')
 
-// REQUIRE AUTH FOR ALL PAYMENT ROUTES
+// >>----------------USING THE AUTHENTICATION----------------<<
 router.use(requireAuth)
 
 // PAYMENT SESSION CREATION

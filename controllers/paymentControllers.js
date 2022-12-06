@@ -1,6 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
 const User = require('../models/userModel')
-const mongoose = require('mongoose')
 
 // PAYMENT SESSION CREATION
 const createCheckoutSession = async (req, res) => {
