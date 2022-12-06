@@ -53,6 +53,8 @@ socketIO.on('connection', (socket) => {
   })
 })
 
+mongoose.set('strictQuery', false)
+
 // CONNECTION TO DATABASE
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
