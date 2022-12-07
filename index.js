@@ -58,7 +58,7 @@ mongoose.set('strictQuery', false)
 // CONNECTION TO DATABASE
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-    http.listen(process.env.PORT_NUMBER)
+    http.listen(process.env.PORT_NUMBER || 4000)
   })
   .catch(error => console.log('COULD NOT CONNECT TO DATABASE'))
 
